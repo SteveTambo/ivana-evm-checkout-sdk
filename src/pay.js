@@ -109,7 +109,7 @@ export async function payIntent({
       throw new IvanaError("The wallet may still be processing an earlier payment request. Do not pay again; check it again shortly.", { code: "BATCH_PENDING" });
     }
     onStage("Waiting for your payment to confirm");
-    const hashes = await followBatch(provider, record.batch.id, timing);
+    const hashes = await followAndForget(record.batch.id);
     unpaid.forEach((index) => (record.sent[index] = hashes[0]));
     save();
     return settle({ hashes });
@@ -206,10 +206,24 @@ export async function payIntent({
     record.batch = { id: batchId };
     save();
     onStage("Waiting for your payment to confirm");
-    const sent = await followBatch(provider, batchId, timing);
+    const sent = await followAndForget(batchId);
     legs.forEach((index) => (record.sent[index] = sent[0]));
     save();
     return sent;
+  }
+
+  // A batch the wallet reports as failed for good is forgotten, so the next attempt can pay
+  // afresh; whatever did land is read from the chain through getStatus.
+  async function followAndForget(batchId) {
+    try {
+      return await followBatch(provider, batchId, timing);
+    } catch (error) {
+      if (error?.code === "BATCH_FAILED") {
+        delete record.batch;
+        save();
+      }
+      throw error;
+    }
   }
 
   async function settle({ hashes: sentHashes }) {

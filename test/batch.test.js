@@ -54,3 +54,17 @@ test("declining the batch clears the record, since nothing was sent", async () =
   await assert.rejects(payIntent({ provider: wallet, intent: intent(), account: BUYER, getStatus: async () => ({ status: "pending" }), store, ...fast }), /rejected/);
   assert.equal(store.load(intent().intentId).batch, undefined);
 });
+
+test("a batch the wallet reports as failed is forgotten, so the next attempt pays afresh", async () => {
+  const wallet = fakeWallet({ batch: "supported" });
+  const store = memoryStore();
+  store.save(intent().intentId, { sent: {}, batch: { id: "batch-1" } });
+  const original = wallet.request;
+  wallet.request = async (args) => (args.method === "wallet_getCallsStatus" ? { status: 500 } : original(args));
+  const pending = async () => ({ status: "pending", legs: null });
+  await assert.rejects(payIntent({ provider: wallet, intent: intent(), account: BUYER, getStatus: pending, store, ...fast }), (e) => e.code === "BATCH_FAILED");
+  assert.equal(store.load(intent().intentId).batch, undefined);
+  wallet.request = original;
+  const result = await payIntent({ provider: wallet, intent: intent(), account: BUYER, getStatus: statusFrom(wallet), store, ...fast });
+  assert.equal(result.status, "completed");
+});

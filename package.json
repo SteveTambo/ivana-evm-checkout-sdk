@@ -1,6 +1,6 @@
 {
   "name": "@habix/ivana-evm-checkout",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "Non-custodial USDC checkout on Base and Polygon through the IVANA payments engine: plain ERC-20 transfers from the buyer's wallet pay the merchant, VAT, the platform fee and suppliers.",
   "type": "module",
   "license": "Apache-2.0",

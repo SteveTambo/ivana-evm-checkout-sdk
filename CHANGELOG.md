@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.1.1 (2026-10-12)
+
+- A wallet batch that the wallet reports as failed for good is forgotten, so the next attempt can
+  pay afresh instead of following the failed batch until the quote expires. Whatever did land is
+  read from the chain through `getStatus`.
+
 ## 0.1.0 (2026-10-12)
 
 First release: USDC checkout on Base and Polygon through IVANA.
